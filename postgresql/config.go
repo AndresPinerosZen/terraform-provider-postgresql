@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 	"unicode"
 
 	"github.com/blang/semver"
@@ -308,8 +309,11 @@ func (c *Client) Connect() (*DBConnection, error) {
 		// We don't want to retain connection
 		// So when we connect on a specific database which might be managed by terraform,
 		// we don't keep opened connection in case of the db has to be dropped in the plan.
-		db.SetMaxIdleConns(0)
+		db.SetMaxIdleConns(5) // Don't follow comment on top to prevent connection explosion.
 		db.SetMaxOpenConns(c.config.MaxConns)
+
+		// Set connection lifetime to prevent stale connections
+		db.SetConnMaxLifetime(5 * time.Minute)
 
 		defaultVersion, _ := semver.Parse(defaultExpectedPostgreSQLVersion)
 		version := &c.config.ExpectedVersion
