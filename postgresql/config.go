@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -240,9 +242,16 @@ func (c *Config) connParams() []string {
 		params["sslrootcert"] = c.SSLRootCertPath
 	}
 
+	// Sort keys to ensure consistent DSN generation across multiple calls
+	keys := make([]string, 0, len(params))
+	for key := range params {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
 	paramsArray := []string{}
-	for key, value := range params {
-		paramsArray = append(paramsArray, fmt.Sprintf("%s=%s", key, url.QueryEscape(value)))
+	for _, key := range keys {
+		paramsArray = append(paramsArray, fmt.Sprintf("%s=%s", key, url.QueryEscape(params[key])))
 	}
 
 	return paramsArray
@@ -287,6 +296,9 @@ func (c *Client) Connect() (*DBConnection, error) {
 	dsn := c.config.connStr(c.databaseName)
 	conn, found := dbRegistry[dsn]
 	if !found {
+		// Log new connection creation with masked password
+		maskedDsn := strings.Replace(dsn, c.config.Password, "XXXX", -1)
+		log.Printf("[INFO] Creating new database connection pool for DSN: %s", maskedDsn)
 
 		var db *sql.DB
 		var err error
