@@ -295,10 +295,11 @@ func (c *Client) Connect() (*DBConnection, error) {
 
 	dsn := c.config.connStr(c.databaseName)
 	conn, found := dbRegistry[dsn]
+
 	if !found {
 		// Log new connection creation with masked password
 		maskedDsn := strings.Replace(dsn, c.config.Password, "XXXX", -1)
-		log.Printf("[INFO] Creating new database connection pool for DSN: %s", maskedDsn)
+		log.Printf("[INFO] dbRegistry has %d pool(s) - Creating NEW pool for: %s", len(dbRegistry), maskedDsn)
 
 		var db *sql.DB
 		var err error
